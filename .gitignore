@@ -31,6 +31,8 @@ target/
 .classpath
 .project
 
+.pydevproject
+
 # OS
 .DS_Store
 
