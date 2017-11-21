@@ -29,9 +29,7 @@ if __name__ == '__main__':
      
     resp=''
     while resp != '0':
-
-        
-        resp=input('1: connect, 2: arm, 3: trigger on, 4: trigger off, 5:disarm, 7: disconnect or 0: exit?')
+        resp=input('1: connect, 2: arm, 3: trigger on, 4: trigger off, 5:disarm, 6: disconnect or 0: exit?')
         if (resp in command_map):
             command_map[resp]()
         
