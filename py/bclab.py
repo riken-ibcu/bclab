@@ -12,9 +12,7 @@ import socket
 
 TOPIC_STATUS = "bcbus/status"
 TOPIC_COMMAND = "bcbus/command"
-TOPIC_DATA = "bcbus/data"
 TOPIC_EVENT = "bcbus/event"
-TOPIC_ANALYSIS = "bcbus/analysis"
 
 STATUS_DISCONNECTED = "STATE_DISCONNECTED"
 STATUS_CONNECTED = "STATE_CONNECTED"
@@ -30,10 +28,6 @@ COMMAND_TRIGGER_OFF = "COMMAND_TRIGGER_OFF"
 COMMAND_STATUS = "COMMAND_STATUS"
 COMMAND_MARK = "COMMAND_MARK"
 
-QOS = 1
-
-
-
 class DataChannel():
     def __init__(self, name, offset, range_min, range_max, signal_type):
         self.name = name
@@ -45,6 +39,7 @@ class DataChannel():
 class Component:
     _status = STATUS_DISCONNECTED
     _status_message = ''
+    mq = None
     
     state_transfers = {
         STATUS_DISCONNECTED: {COMMAND_CONNECT: STATUS_CONNECTED },
@@ -53,22 +48,20 @@ class Component:
         STATUS_TRIGGERED: {COMMAND_TRIGGER_OFF: STATUS_CONNECTED}
     }
 
-    def __init__(self, logger, broker_address, broker_port, client_id):
-        logger.info('"%s" connecting to: %s:%s' % (client_id, broker_address , broker_port))
+    def __init__(self, logger, broker_address, broker_port, client_id, qos):
+        logger.info('"%s" connecting to: %s:%s with qos %i' % (client_id, broker_address , broker_port, qos))
         self.log = logger
         self.client_id = client_id
+        self.qos = qos
        
-        self.mq = mqtt.Client(client_id, clean_session=True, userdata=self, protocol=mqtt.MQTTv31)
- 
+        self.mq = mqtt.Client(client_id, clean_session=True, userdata=self, protocol=mqtt.MQTTv31) 
         self.mq.on_message = self._on_message
         self.mq.on_log = self._on_log
         self.mq.on_connect = self._on_connect
 
         self.mq.connect(broker_address, int(broker_port), keepalive=60)
-
-        self.mq.subscribe(TOPIC_COMMAND, qos=QOS)
-        self.mq.subscribe(TOPIC_EVENT, qos=QOS)
-   
+        self.mq.subscribe(TOPIC_COMMAND, qos=self.qos)
+        self.mq.subscribe(TOPIC_EVENT, qos=self.qos)  
         self.notify_status()
         self.mq.loop_start()
     
@@ -86,7 +79,7 @@ class Component:
     
             if msg.topic == TOPIC_COMMAND:
                 connector.on_command(payload)
-            elif msg.topic == TOPIC_DATA:
+            elif 'stream_id' in payload:
                 if 'data' in payload:
                     if connector.get_status() in [STATUS_ARMED, STATUS_TRIGGERED]:
                         connector.on_data_stream(msg.topic, payload)
@@ -95,23 +88,20 @@ class Component:
             elif 'analysis_id' in payload:
                 connector.on_analysis(msg.topic, payload)
             elif msg.topic == TOPIC_EVENT:
-                connector.on_event(msg.topic, payload)
+                connector.on_event(payload)
             elif msg.topic == TOPIC_STATUS:
                 connector.on_status(payload)
-    
         except:
             err_msg = traceback.format_exc()
             connector.log.error(err_msg)
             connector._status_message = err_msg
             connector.notify_status()
 
-
     def _on_log(self, mq, connector, level, string):
         if level == mqtt.MQTT_LOG_ERR:
             connector.log.error(string)
         elif level == mqtt.MQTT_LOG_WARNING:
-            connector.log.warning(string)
-    
+            connector.log.warning(string)    
         
     def get_status(self):
         return self._status
@@ -149,54 +139,50 @@ class Component:
                    "time_utc": datetime.datetime.utcnow().isoformat(),
                    "clock_id": socket.gethostname(),
                    "message": self._status_message}
-        (result, _) = self.mq.publish(TOPIC_STATUS, json.dumps(payload), qos=QOS)
+        (result, _) = self.mq.publish(TOPIC_STATUS, json.dumps(payload), qos=self.qos)
         if result:
-            self.log.error(mqtt.error_string(result))
+            self.log.error(mqtt.error_string(result))            
             
-            
-    def subscribe_data(self, topic_id):
-        (result, _) = self.mq.subscribe(topic_id, qos=QOS)
+    def subscribe_data(self, source_client_id):
+        (result, _) = self.mq.subscribe(source_client_id, qos=self.qos)
         if result:
             self.log.error(self.mq.error_string(result))
         
     def subscribe_analysis(self, analysis_id):
-        (result, _) = self.mq.subscribe(analysis_id, qos=QOS)
+        (result, _) = self.mq.subscribe(analysis_id, qos=self.qos)
         if result:
             self.log.error(self.mq.error_string(result))
 
     def post_analysis(self, analysis_id, **kwargs):
         kwargs['analysis_id'] = analysis_id
-        self.log.info('post analysis')
         self.log.info(kwargs)
-        (result, _) = self.mq.publish(analysis_id, json.dumps(kwargs), qos=QOS)
+        (result, _) = self.mq.publish(analysis_id, json.dumps(kwargs), qos=self.qos)
         if result:
             self.log.error(self.mq.error_string(result))
 
     def post_event(self, event_id, **kwargs):
         kwargs['event_id'] = event_id
-        self.log.info('post event')
         self.log.info(kwargs)
-        (result, _) = self.mq.publish(TOPIC_EVENT, json.dumps(kwargs), qos=QOS)     
+        (result, _) = self.mq.publish(event_id, json.dumps(kwargs), qos=self.qos)     
         if result:
-            self.log.error(self.mq.error_string(result))
-  
+            self.log.error(self.mq.error_string(result))  
 
     def __del__(self):
-        self.mq.loop_stop()
-        self.mq.disconnect()
-        self.mq = None
-        self.listeners = []
+        if self.mq is not None:
+            self.mq.loop_stop()
+            self.mq.disconnect()
+            self.mq = None
         
-    def on_data_init(self, channel_id, msg):
+    def on_data_init(self, source_client_id, msg):
         pass
     
-    def on_data_stream(self, channel_id, msg):
+    def on_data_stream(self, source_client_id, msg):
         pass
     
     def on_analysis(self, analysis_id, msg):
         pass
         
-    def on_event(self, event_id, msg):
+    def on_event(self, event):
         pass
     
     def on_connect(self, attr):
@@ -221,9 +207,8 @@ class Component:
         pass
     
 class Producer(Component):
-    def __init__(self, logger, broker_address, broker_port, client_id):
-        super(Producer, self).__init__(logger, broker_address, broker_port, client_id)
-        
+    def __init__(self, logger, broker_address, broker_port, client_id, qos):
+        super(Producer, self).__init__(logger, broker_address, broker_port, client_id, qos)       
         self.stream_id = ''
         self.stream_initializer = ""
         
@@ -250,10 +235,9 @@ class Producer(Component):
         self._send_stream_initializer()
 
     def _send_stream_initializer(self):
-        (result, _mid) = self.mq.publish(TOPIC_DATA, self.stream_initializer, qos=QOS)
+        (result, _mid) = self.mq.publish(self.client_id, self.stream_initializer, qos=self.qos)
         if result:
             self.log.error(self.mq.error_string(result))
-
 
     def stream_data(self, data_string, first_scan, scan_count):
         payload = {"client_id": self.client_id, 
@@ -261,21 +245,21 @@ class Producer(Component):
                    "scan_count": scan_count, 
                    "data": data_string, 
                    "stream_id": self.stream_id}
-        (result, _mid) = self.mq.publish(TOPIC_DATA, json.dumps(payload), qos=QOS)
+        (result, _mid) = self.mq.publish(self.client_id, json.dumps(payload), qos=self.qos)
         if result:
             self.log.error(self.mq.error_string(result))
 
 class Controller(Component):   
-    def __init__(self, logger, broker_address, broker_port, client_id):
-        super(Controller, self).__init__(logger, broker_address, broker_port, client_id)
-        self.mq.subscribe(TOPIC_STATUS, qos=QOS)
+    def __init__(self, logger, broker_address, broker_port, client_id, qos):
+        super(Controller, self).__init__(logger, broker_address, broker_port, client_id, qos)
+        self.mq.subscribe(TOPIC_STATUS, qos=self.qos)
     
     def on_status(self, attr):
         pass
          
     def command(self, command, **kwargs):
         kwargs['command'] = command
-        self.mq.publish(TOPIC_COMMAND, json.dumps(kwargs), qos=QOS)
+        self.mq.publish(TOPIC_COMMAND, json.dumps(kwargs), qos=self.qos)
     
     def connect(self):
         self.command(COMMAND_CONNECT)

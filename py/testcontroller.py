@@ -8,6 +8,7 @@ import bclab
 import logging
 
 class TestController(bclab.Controller):
+   
     def on_status(self, attr):
         print('STATUS REPORT')
         print(attr)
@@ -18,7 +19,7 @@ if __name__ == '__main__':
     
     logging.getLogger().setLevel(logging.INFO)
     logging.info('running')
-    controller= TestController(logging, 'localhost', 1883, "test_controller" )
+    controller= TestController(logging, 'localhost', 1883, "test_controller", 1 )
  
     command_map= {'1':controller.connect, 
                   '2':controller.arm, 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html style="height: 100%;">
+<head>
+<meta charset="UTF-8">
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+  width:  100%;
+  height: 100%;
+  margin: 0px;
+}
+
+.control {
+    float: left;
+    width: 33.33%;
+ 	height:100vh;
+}
+
+.plot {
+    float: left;
+    width: 66.66%;
+ 	height:100vh;
+     background-color: lightblue;
+}
+</style>
+<script type="text/javascript" src="js/base64js.min.js"></script>
+<script type="text/JavaScript" src="js/mqttws31.js"></script>
+<script type="text/JavaScript" src="js/bclab.js"></script>
+<script type="text/JavaScript" src="js/plot.js"></script>
+<script type="text/JavaScript" src="js/status-monitor.js"></script>
+
+<script type="text/javascript">
+	var connector;
+
+	console.logCopy = console.log.bind(console);
+
+	console.log = function(data)
+	{
+	    var currentDate = '[' + new Date().toUTCString() + '] ';
+	    this.logCopy(currentDate, data);
+	};
+	
+	function ready() {
+		var brokerAddr = "${BROKER_HOST}";
+		var brokerPort = ${BROKER_PORT};
+		var canvases = [document.getElementById("cnvGraphA")]
+		var graphs = [ new Graph(canvases[0], "test_producer", 10)];
+        var analysis = []
+		var statusMonitors = [new StatusMonitor(document.getElementById("tblStatus"))];
+    	var eventMonitors = []
+
+		connector = new BcbusConnector(brokerAddr, brokerPort, graphs, analysis, statusMonitors, eventMonitors);
+	}
+	document.addEventListener("DOMContentLoaded", ready, false)
+</script>
+
+<title>Intelligent Behavior Control</title>
+</head>
+<body>
+		<div class="control">						
+				<h1>Control</h1>
+				<div>
+					<button id="btnConnect" onClick="connector.connect()">Connect</button>Destination<input type="text" id="txtDestination" value=""></input>
+					<button id="btnArm" onClick="connector.arm(getElementById('txtDestination').value)">Arm</button>
+					<button id="btnTriggerOn" onClick="connector.triggerOn()">Trigger On</button>
+					<button id="btnTriggerOff" onClick="connector.triggerOff()">Trigger Off</button>
+					<button id="btnDisarm" onClick="connector.disarm()">Disarm</button>
+					<button id="btnDisconnect" onClick="connector.disconnect()">Disconnect</button>
+				</div>
+				<div>
+					<table id="tblStatus" border="1" style="width: 100%"></table>
+				</div>
+
+				<div>
+					<button id="btnPos1" onClick="connector.send_event({event_id:getElementById('btnPos1').innerHTML})">SUB_STATE_A</button>
+					<button id="btnPos2" onClick="connector.send_event({event_id:getElementById('btnPos2').innerHTML})">SUB_STATE_B</button>
+                    <button id="btnPos3" onClick="connector.send_event({event_id:getElementById('btnPos3').innerHTML})">SUB_STATE_C</button>
+				
+				</div>
+		</div>
+		<div class="plot">						
+			<canvas id="cnvGraphA"/>
+		</div>
+</body>
+</html>

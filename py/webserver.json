@@ -1,0 +1,5 @@
+{"BCLAB_ROOT": "../", 
+"BCLAB_HOST": "::1", 
+"WEB_PORT": 8080,
+"BROKER_HOST": "localhost",
+"BROKER_PORT": 61614}

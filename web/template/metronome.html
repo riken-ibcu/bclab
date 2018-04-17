@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html style="height: 100%;">
+<head>
+<meta charset="UTF-8">
+
+
+<script type="text/javascript">
+	var timer = setInterval(tick, 30)
+
+	var ball = null
+	var start_ms = 0
+	var was_enabled = false
+	
+	function tf(x) {
+		var fq= document.getElementById("txtFrequency").value
+		
+		var phase = document.getElementById("chkPhase").checked
+		var flip = (!document.getElementById("chkVertical").checked) & document.getElementById("chkCircle").checked
+		var offset = (flip) ? Math.PI/2: 0
+			
+		var p=x*Math.PI*2*fq+offset
+		
+		if (phase) {
+			return (1-Math.cos(p))/2
+		} else {
+			return (Math.cos(p))/2+0.5
+		} 
+	}
+	
+	function tfy(x) {
+		var fq= document.getElementById("txtFrequency").value
+		
+		var phase = document.getElementById("chkPhase").checked
+		var flip = (!document.getElementById("chkVertical").checked) & document.getElementById("chkCircle").checked
+		var offset = (flip) ? Math.PI/2: 0
+			
+		var p=x*Math.PI*2*fq+offset
+		if (phase) {
+			return (1-Math.sin(p))/2
+		} else {
+			return (Math.sin(p))/2+0.5
+		} 
+	}
+
+	
+	function tick() {
+		if (ball == null) {
+			ball = create_ball()
+		}
+		
+		enabled= document.getElementById("chkEnabled").checked
+	    var p1, p2
+		ball.clear()
+		if (enabled) {
+			var time = new Date().getTime()/1000.0
+			if (!was_enabled) {
+				start_ms = time
+			}
+			p1=tf(time-start_ms)
+			if (document.getElementById("chkCircle").checked) {
+				p2=tfy(time-start_ms)
+			} else {
+				p2 = 0.5
+			}
+			
+			
+		} else {
+			var phase = document.getElementById("chkPhase").checked
+			if (phase) {
+				p1=0
+				p2=0.5
+			} else {
+				p1=1
+				p2=0.5
+			}
+			if ((document.getElementById("chkCircle").checked) & (!document.getElementById("chkVertical").checked)) {
+				var z
+				z = p1
+				p1 = p2
+				p2 = z
+			}
+			
+		}
+		if (document.getElementById("chkVertical").checked) {
+			ball.move(p2, p1)
+		} else {	
+			ball.move(p1, p2)
+		
+		}
+		ball.draw()
+		was_enabled = enabled
+	}
+
+	function create_ball() {
+		var canvas = document.getElementById("theCanvas")
+		canvas.width = window.innerWidth;
+		
+        canvas.height = window.innerHeight;
+
+		
+		var b = {
+				color: "red",
+				bkg_color: 'khaki',
+				radius: 60,
+				ctx: canvas.getContext("2d"),
+				canvas_w: Math.min(canvas.width,canvas.height),
+				canvas_h: Math.min(canvas.width,canvas.height),
+				x: canvas.width/2,
+				y: canvas.height/2,
+				draw: function() {
+					this.ctx.beginPath();
+					this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false);
+					this.ctx.fillStyle = this.color;
+					this.ctx.fill();
+					this.ctx.closePath();
+				},
+				clear: function() {
+					this.ctx.clearRect(0,0, this.canvas_w, this.canvas_h)
+				    
+					//this.ctx.fillStyle = 'Khaki';
+					//this.ctx.fillRect(this.radius, this.radius, this.canvas_w-this.radius*2, this.canvas_h-this.radius*2);
+					this.ctx.beginPath();
+					this.ctx.arc(this.radius+0.5*(this.canvas_w-this.radius*2), this.radius+0.5*(this.canvas_w-this.radius*2), this.canvas_w/2-this.radius, 0, Math.PI*2, false);
+					this.ctx.fillStyle = this.bkg_color;
+					this.ctx.fill();
+					this.ctx.closePath()
+
+				},
+				move: function(x,y) {
+					this.x = this.radius+x*(this.canvas_w-this.radius*2)
+					this.y = this.radius+y*(this.canvas_h-this.radius*2)
+					
+				}
+		}
+		return b
+	}
+	
+	function ready() {
+		
+	}
+	
+	function setFrequency(fq) {
+		var txt = document.getElementById("txtFrequency")
+		txt.value=fq
+	}
+	document.addEventListener("DOMContentLoaded", ready, false)
+</script>
+
+<title>Metronome</title>
+</head>
+<body style="height: 100%;">
+<span>
+<input type="button" value="1" onClick="setFrequency(1)"></input>
+<input type="button" value="1/2" onClick="setFrequency(0.5)"></input>
+<input type="button" value="1/4" onClick="setFrequency(0.25)"></input>
+<input type="button" value="1/8" onClick="setFrequency(0.125)"></input>
+<input type="button" value="1/16" onClick="setFrequency(0.0625)"></input>
+
+<input id="txtFrequency" value="0.5">Frequency</input>
+<input type="checkbox" id="chkEnabled" value="enabled">Enabled</input>
+<input type="checkbox" id="chkPhase" value="enabled">Phase</input>
+<input type="checkbox" id="chkVertical" value="enabled">Direction</input>
+<input type="checkbox" id="chkCircle" value="enabled">Circle</input>
+</span>
+<span>
+	<canvas id="theCanvas" style="background-color: #ffffff;" width="100%"></canvas>
+</span>
+</body>
+</html>
