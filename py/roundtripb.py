@@ -20,7 +20,6 @@ class ClientB(bclab.Component):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     qos = int(sys.argv[1]) if len(sys.argv)>1 else 1
-    client= ClientB(logging, 'localhost', 1883, "clientb", qos )
-
-    var = input("Hit <ENTER> to stop!\n")
+    with  ClientB(logging, 'localhost', 1883, "clientb", qos ) as client:
+        var = input("Hit <ENTER> to stop!\n")
     

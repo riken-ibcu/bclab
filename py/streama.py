@@ -57,10 +57,9 @@ if __name__ == '__main__':
     
     qos = int(sys.argv[1]) if len(sys.argv) > 1 else 1   
     rows_to_send = int(sys.argv[2]) if len(sys.argv) > 2 else 20000   
-    producer= StreamA(logging, 'localhost', 1883, "streama", 50,200,qos )
+    with StreamA(logging, 'localhost', 1883, "streama", 50, 200, qos ) as producer:
+        while(producer.total_rows_sent < rows_to_send):
+           time.sleep(0.5)
    
-    while(producer.total_rows_sent < rows_to_send):
-       time.sleep(0.5)
-   
-    print('done')
+    logging.info('done')
    

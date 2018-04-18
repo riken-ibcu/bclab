@@ -41,9 +41,6 @@ class TestConsumer(bclab.Component):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.info('running')
-    consumer= TestConsumer(logging, 'localhost', 1883, "test_consumer", 1, 'test_producer', 'test_producer/analysis' )
-
-
-    while True:
-        time.sleep(0.5)
+    with TestConsumer(logging, 'localhost', 1883, "test_consumer", 1, 'test_producer', 'test_producer/analysis' ) as consumer:
+        var = input("Hit <ENTER> to stop!\n")
     

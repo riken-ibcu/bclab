@@ -49,16 +49,14 @@ if __name__ == '__main__':
     
     qos = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     filename = sys.argv[2] if len(sys.argv) > 2 else None
-    consumer= StreamB(logging, 'localhost', 1883, "streamb", qos )
-
-    var = input("Hit <ENTER> to stop!\n")
-    
-    
-    if filename:
-        thefile = open(filename, 'w')
-        for item in consumer.acc:
-            thefile.write("%f\n" % item)            
-        thefile.close()
-    print('done')
+    with StreamB(logging, 'localhost', 1883, "streamb", qos ) as consumer:
+        var = input("Hit <ENTER> to stop!\n")
+        
+        if filename:
+            thefile = open(filename, 'w')
+            for item in consumer.acc:
+                thefile.write("%f\n" % item)            
+            thefile.close()
+    logging.info('done')
 
 	    

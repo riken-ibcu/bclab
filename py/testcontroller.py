@@ -19,20 +19,19 @@ if __name__ == '__main__':
     
     logging.getLogger().setLevel(logging.INFO)
     logging.info('running')
-    controller= TestController(logging, 'localhost', 1883, "test_controller", 1 )
- 
-    command_map= {'1':controller.connect, 
-                  '2':controller.arm, 
-                  '3':controller.trigger_on,
-                  '4':controller.trigger_off,
-                  '5':controller.disarm,
-                  '6':controller.disconnect}
-     
-    resp=''
-    while resp != '0':
-        resp=input('1: connect, 2: arm, 3: trigger on, 4: trigger off, 5:disarm, 6: disconnect or 0: exit?')
-        if (resp in command_map):
-            command_map[resp]()
+    with TestController(logging, 'localhost', 1883, "test_controller", 1 ) as controller:
+        command_map= {'1':controller.connect, 
+                      '2':controller.arm, 
+                      '3':controller.trigger_on,
+                      '4':controller.trigger_off,
+                      '5':controller.disarm,
+                      '6':controller.disconnect}
+         
+        resp=''
+        while resp != '0':
+            resp=input('1: connect, 2: arm, 3: trigger on, 4: trigger off, 5:disarm, 6: disconnect or 0: exit?')
+            if (resp in command_map):
+                command_map[resp]()
         
     logging.info('done')
     

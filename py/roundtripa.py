@@ -40,25 +40,25 @@ if __name__ == '__main__':
     qos = int(sys.argv[1]) if len(sys.argv)>1 else 1
     filename = sys.argv[2] if len(sys.argv)>2 else None
          
-    client= ClientA(logging, 'localhost', 1883, "clienta", qos )
+    with  ClientA(logging, 'localhost', 1883, "clienta", qos ) as client:   
+        client.run(0.1, 1000)
+        time.sleep(1)
+        print('done')
+        d = []
+        missed=[]
+        for k in client.res.keys():
+            e = client.res[k]
+            if e is None:
+                missed.append(k)
+            else:
+                d.append(float(e)-float(k))
+        print('missed', len(missed), missed)
+        print('mean', np.mean(d))
+        print('sd', np.std(d))
     
-    client.run(0.1, 1000)
-    time.sleep(1)
-    print('done')
-    d = []
-    missed=[]
-    for k in client.res.keys():
-        e = client.res[k]
-        if e is None:
-            missed.append(k)
-        else:
-            d.append(float(e)-float(k))
-    print('missed', len(missed), missed)
-    print('mean', np.mean(d))
-    print('sd', np.std(d))
-
-    if filename:
-        thefile = open(filename, 'w')
-        for item in d:
-            thefile.write("%f\n" % item)            
-        thefile.close()
+        if filename:
+            thefile = open(filename, 'w')
+            for item in d:
+                thefile.write("%f\n" % item)            
+            thefile.close()
+            

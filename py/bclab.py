@@ -167,11 +167,24 @@ class Component:
         if result:
             self.log.error(self.mq.error_string(result))  
 
-    def __del__(self):
+    def close(self):
         if self.mq is not None:
+            self._status_message = 'terminated'
+            self.notify_status()
+            self.log.info('shutting down')
             self.mq.loop_stop()
             self.mq.disconnect()
             self.mq = None
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+
+    def __del__(self):
+        self.close()
         
     def on_data_init(self, source_client_id, msg):
         pass

@@ -25,7 +25,14 @@ class TestProducer(bclab.Producer):
             ch = bclab.DataChannel("channel %i" % i, i, -1, 1, "emg")
             chs.append(ch)
         self.initialize_data(200, len(chs), chs)
+        self.destination = attr['destination']
+        self.log.info('destination:%s' % self.destination)
 
+    def on_trigger_off(self, attr):
+        # at latest, at this point, would store the produced data 
+        # in to self.destination, which could be a path in the file system
+        pass
+        
     def produce(self):
         status = self.get_status()
 
@@ -37,15 +44,17 @@ class TestProducer(bclab.Producer):
             s = base64.b64encode(bbuf).decode("utf-8")
             self.stream_data(s, self.total_rows_sent, self.rows_per_message)
             self.total_rows_sent += self.rows_per_message
+            
+
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.info('running')
-    producer= TestProducer(logging, 'localhost', 1883, "test_producer" )
-    loop_iter = 0
-    while True:
-        producer.produce()
-        if producer.get_status() in [bclab.STATUS_ARMED, bclab.STATUS_TRIGGERED] and not loop_iter % 10:
-            producer.post_analysis('test_producer/analysis', count=loop_iter)
-        time.sleep(1)
-        loop_iter += 1
+    with TestProducer(logging, 'localhost', 1883, "test_producer" ) as producer:
+        loop_iter = 0
+        while True:
+            producer.produce()
+            if producer.get_status() in [bclab.STATUS_ARMED, bclab.STATUS_TRIGGERED] and not loop_iter % 10:
+                producer.post_analysis('test_producer/analysis', count=loop_iter)
+            time.sleep(1)
+            loop_iter += 1
